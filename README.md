@@ -326,7 +326,9 @@ This project is for academic use. See individual component licenses for specific
 
 ## 👥 Authors
 
-- Nicholas Brown - Queens University
+- Nicholas Brown
+- Nirmit Dagli
+- Tamuka Manjemu
 - Project for Generative AI Course, Fall 2025
 
 ## 🙏 Acknowledgments
@@ -335,6 +337,4 @@ This project is for academic use. See individual component licenses for specific
 - Hugging Face for model infrastructure
 - Course instructors and TAs for guidance
 
----
 
-For questions or issues, please open a GitHub issue or contact [your-email@institution.edu].
