@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-rag_retrieve.py - Build and use FAISS index for Silvaco example retrieval
-Embeds all .in files and provides similarity search functionality
+rag_retrieve.py - Build and use FAISS index for SPICE example retrieval
+Embeds .in netlists and provides similarity search functionality
 """
 
 import os
 import json
-import pickle
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
@@ -16,8 +15,8 @@ from tqdm import tqdm
 import re
 
 
-class SilvacoRAG:
-    """RAG system for retrieving similar Silvaco examples"""
+class SpiceRAG:
+    """RAG system for retrieving similar SPICE netlist examples"""
     
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         """Initialize with sentence transformer model"""
@@ -28,10 +27,10 @@ class SilvacoRAG:
         self.embeddings = []
         
     def extract_key_features(self, code: str) -> str:
-        """Extract key features from Silvaco code for better embedding"""
+        """Extract key features from SPICE code for better embedding"""
         features = []
         
-        # Extract device type from comments
+        # Extract device type from SPICE components
         device_patterns = [
             r'(MOSFET|mosfet|NMOS|PMOS|nmos|pmos)',
             r'(BJT|bjt|NPN|PNP|npn|pnp)',
@@ -39,22 +38,40 @@ class SilvacoRAG:
             r'(LNA|lna|amplifier|Amplifier)',
             r'(VCO|vco|oscillator|Oscillator)',
             r'(MIXER|mixer|Mixer)',
-            r'(photonic|Photonic|optical|Optical)',
-            r'(sensor|Sensor|detector|Detector)'
+            r'(capacitor|inductor|resistor|Capacitor|Inductor|Resistor)'
         ]
         
         for pattern in device_patterns:
             if re.search(pattern, code, re.IGNORECASE):
                 features.append(re.search(pattern, code, re.IGNORECASE).group(1))
         
-        # Extract key parameters
+        # Extract SPICE component instances
+        spice_components = [
+            r'^(M\w+)',  # MOSFET
+            r'^(Q\w+)',  # BJT
+            r'^(D\w+)',  # Diode
+            r'^(R\w+)',  # Resistor
+            r'^(C\w+)',  # Capacitor
+            r'^(L\w+)',  # Inductor
+            r'^(V\w+)',  # Voltage source
+            r'^(I\w+)',  # Current source
+        ]
+        
+        for line in code.split('\n'):
+            line = line.strip()
+            for pattern in spice_components:
+                match = re.match(pattern, line, re.IGNORECASE)
+                if match:
+                    features.append(match.group(1))
+        
+        # Extract SPICE parameters  
         param_patterns = [
-            r'\.PARAM\s+(\w+)',
-            r'WIDTH=([0-9.]+[unm]?)',
-            r'LENGTH=([0-9.]+[unm]?)',
-            r'FUND=([0-9.]+[GMK]?Hz)',
-            r'VDD.*?([0-9.]+)',
-            r'TEMP.*?([0-9.]+)'
+            r'L=([0-9.]+[unm]?)',     # Length
+            r'W=([0-9.]+[unm]?)',     # Width  
+            r'DC\s+([0-9.]+)',        # DC voltage/current
+            r'AC\s+([0-9.]+)',        # AC magnitude
+            r'TEMP=([0-9.]+)',        # Temperature
+            r'FUND=([0-9.]+[GMK]?Hz)' # Frequency
         ]
         
         for pattern in param_patterns:
@@ -84,39 +101,89 @@ class SilvacoRAG:
         
         return feature_text
     
-    def load_silvaco_files(self, base_dir: str) -> List[Dict]:
-        """Load all .in files from directory"""
+    ATLAS_KEYWORDS = [
+        'go atlas', 'mesh', 'region', 'electrode', 'doping', 'solve', 'plot',
+        'structure', 'material', 'interface', 'method', 'workfunc', 'tonyplot'
+    ]
+
+    SPICE_REQUIRED_TOKENS = [
+        '.model', '.subckt', '.include', '.options', '.tran', '.ac', '.dc'
+    ]
+
+    MIN_SPICE_LINES = 8
+
+    def _is_valid_spice(self, content: str) -> bool:
+        """Return True if content looks like SPICE and not ATLAS"""
+        lower = content.lower()
+
+        if any(keyword in lower for keyword in self.ATLAS_KEYWORDS):
+            return False
+
+        if not any(token in lower for token in self.SPICE_REQUIRED_TOKENS):
+            # allow pure element-level netlists as long as they contain common components
+            component_patterns = [r'^[mqrstclvi]\w+\s+', r'\.end\s*$', r'\.global']
+            if not any(re.search(pattern, content, re.IGNORECASE) for pattern in component_patterns):
+                return False
+
+        # Require at least one component OR subcircuit definition
+        has_component = any(
+            re.match(r'^[MQRCLVI]\w+\s+', line.strip(), re.IGNORECASE)
+            for line in content.splitlines()
+        )
+        has_subckt = '.subckt' in lower
+        has_analysis = any(cmd in lower for cmd in ['.tran', '.ac', '.dc', '.noise', '.measure', '.op'])
+
+        if not (has_component or has_subckt):
+            return False
+
+        # Require at least MIN_SPICE_LINES to avoid trivial snippets
+        non_empty_lines = [line for line in content.splitlines() if line.strip()]
+        if len(non_empty_lines) < self.MIN_SPICE_LINES:
+            return False
+
+        # Require at least one analysis or control statement to ensure runnable decks
+        if not has_analysis and '.model' not in lower and '.include' not in lower:
+            return False
+
+        return True
+
+    def load_spice_files(self, base_dir: str) -> List[Dict]:
+        """Load SPICE-only .in files from directory, filtering out ATLAS decks"""
         files_data = []
         
         print(f"Scanning for .in files in {base_dir}")
         for root, _, files in os.walk(base_dir):
             for file in files:
-                if file.endswith('.in'):
-                    filepath = os.path.join(root, file)
-                    try:
-                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-                            content = f.read()
-                        
-                        # Extract relative path for better organization
-                        rel_path = os.path.relpath(filepath, base_dir)
-                        
-                        files_data.append({
-                            'filepath': filepath,
-                            'relative_path': rel_path,
-                            'filename': file,
-                            'content': content,
-                            'length': len(content)
-                        })
-                    except Exception as e:
-                        print(f"Error reading {filepath}: {e}")
-        
-        print(f"Found {len(files_data)} .in files")
+                if not file.endswith('.in'):
+                    continue
+
+                filepath = os.path.join(root, file)
+                try:
+                    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                except Exception as e:
+                    print(f"Error reading {filepath}: {e}")
+                    continue
+
+                if not self._is_valid_spice(content):
+                    continue
+
+                rel_path = os.path.relpath(filepath, base_dir)
+                files_data.append({
+                    'filepath': filepath,
+                    'relative_path': rel_path,
+                    'filename': file,
+                    'content': content,
+                    'length': len(content)
+                })
+
+        print(f"Found {len(files_data)} SPICE netlists")
         return files_data
     
     def build_index(self, examples_dir: str, index_path: str, metadata_path: str):
         """Build FAISS index from all .in files"""
         # Load all files
-        files_data = self.load_silvaco_files(examples_dir)
+        files_data = self.load_spice_files(examples_dir)
         
         if not files_data:
             raise ValueError(f"No .in files found in {examples_dir}")
@@ -236,26 +303,6 @@ class SilvacoRAG:
                 break
         return summary
     
-    def _extract_section_presence(self, content: str) -> List[str]:
-        """Capture which Silvaco sections this file demonstrates"""
-        section_keywords = [
-            ('Mesh definition', 'mesh'),
-            ('Region setup', 'region'),
-            ('Electrodes/contacts', 'electrode'),
-            ('Material blocks', 'material'),
-            ('Doping profiles', 'doping'),
-            ('Models section', 'models'),
-            ('Solve commands', 'solve'),
-            ('Atlas invocation', 'go atlas'),
-            ('Quit statement', 'quit')
-        ]
-        content_lower = content.lower()
-        sections = []
-        for label, keyword in section_keywords:
-            if keyword in content_lower:
-                sections.append(label)
-        return sections
-    
     def _extract_analysis_commands(self, content: str) -> List[str]:
         """List unique analysis commands present in the file"""
         analysis_patterns = {
@@ -295,51 +342,76 @@ class SilvacoRAG:
         return params
     
     def format_retrieved_examples(self, examples: List[Dict]) -> str:
-        """Format retrieved examples as short natural-language summaries"""
+        """Format retrieved examples for SPICE few-shot integration"""
+        if not examples:
+            return ""
+
         formatted = []
-        
-        for i, example in enumerate(examples):
-            comments = self._extract_comment_summary(example['content'])
-            sections = self._extract_section_presence(example['content'])
-            analyses = self._extract_analysis_commands(example['content'])
-            params = self._extract_key_parameters(example['content'])
-            
-            summary_lines = [
-                f"Example {i+1}: {example['relative_path']}",
-                "Use case summary: " + (comments[0] if comments else "Not specified"),
-                "Key focuses: " + (', '.join(comments[1:3]) if len(comments) > 1 else "N/A"),
-                "Silvaco sections demonstrated: " + (', '.join(sections) if sections else "unspecified"),
-                "Analysis commands: " + (', '.join(analyses) if analyses else "none noted"),
-                "Notable parameters: " + (', '.join(params) if params else "not provided")
-            ]
-            
-            formatted.append('\n'.join(summary_lines))
-        
-        return "\n\n---\n\n".join(formatted)
+
+        for i, example in enumerate(examples[:2]):
+            content = example['content']
+            content_lower = content.lower()
+
+            # Skip any files that look like TCAD/ATLAS decks
+            if any(term in content_lower for term in ['go atlas', 'mesh', 'region', 'electrode']):
+                continue
+
+            formatted_example = f"\n--- RAG Retrieved SPICE Example {i+1} ---\n"
+            formatted_example += f"Source: {example['relative_path']}\n"
+            formatted_example += f"Similarity Score: {example.get('similarity_score', 0.0):.3f}\n"
+
+            comment_summary = self._extract_comment_summary(content)
+            if comment_summary:
+                formatted_example += "Summary: " + '; '.join(comment_summary[:2]) + "\n"
+
+            key_sections = []
+            for line in content.split('\n'):
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                if stripped.startswith('*') and len(key_sections) < 2:
+                    key_sections.append(stripped)
+                    continue
+
+                if stripped[0:1].upper() in ['M', 'Q', 'R', 'C', 'L', 'V', 'I', 'X'] or \
+                   any(token in stripped.lower() for token in ['.model', '.subckt', '.dc', '.ac', '.tran', '.end', '.measure']):
+                    key_sections.append(stripped)
+                if len(key_sections) >= 18:
+                    break
+
+            if not any('.model' in line.lower() for line in key_sections):
+                continue
+
+            formatted_example += '\n'.join(key_sections)
+            formatted_example += "\n" + "=" * 50
+            formatted.append(formatted_example)
+
+        return '\n'.join(formatted)
 
 
 def main():
     """Build the FAISS index"""
-    # Paths
-    examples_dir = "data/SilvacoUserManuel_CodeExamples/examples"
-    index_path = "embeddings/faiss_index.bin"
-    metadata_path = "embeddings/metadata.json"
+    root_dir = Path(__file__).resolve().parents[1]
+    examples_dir = root_dir / "data" / "SilvacoUserManuel_CodeExamples" / "examples"
+    embeddings_dir = root_dir / "embeddings"
+    index_path = embeddings_dir / "faiss_index.bin"
+    metadata_path = embeddings_dir / "metadata.json"
     
     # Create embeddings directory
-    os.makedirs("embeddings", exist_ok=True)
+    os.makedirs(embeddings_dir, exist_ok=True)
     
     # Initialize RAG system
-    rag = SilvacoRAG()
+    rag = SpiceRAG()
     
     # Build index
-    rag.build_index(examples_dir, index_path, metadata_path)
+    rag.build_index(str(examples_dir), str(index_path), str(metadata_path))
     
     # Test retrieval
     print("\n" + "="*50)
     print("Testing retrieval with sample query...")
     test_query = "Create a MOSFET transistor with 2V supply voltage and harmonic balance analysis"
     
-    rag.load_index(index_path, metadata_path)
+    rag.load_index(str(index_path), str(metadata_path))
     results = rag.retrieve(test_query, k=3)
     
     print(f"\nQuery: {test_query}")
