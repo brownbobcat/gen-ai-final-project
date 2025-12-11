@@ -1,0 +1,94 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+.env/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+eval_env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Model files (keep adapters, exclude large base models)
+model/base_model/
+*.bin
+*.safetensors
+!model/adapter_model/*.safetensors
+!model/tokenizer/
+
+# Data files (keep processed, exclude large raw files)
+data/raw/
+data/SilvacoUserManuel_CodeExamples/
+*.zip
+*.tar.gz
+*.7z
+
+# Embeddings (large files)
+embeddings/*.bin
+embeddings/*.index
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.out
+
+# Cache
+.cache/
+.pytest_cache/
+
+# Local configuration
+.env
+config.local.json
+
+# Training outputs
+wandb/
+runs/
+logs/
+
+# Large result files
+benchmark/test_results/detailed_results_*.json
+
+# Colab artifacts
+*.colab-metadata

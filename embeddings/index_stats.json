@@ -1,0 +1,19 @@
+{
+  "total_files": 726,
+  "embedding_dimension": 384,
+  "index_type": "IndexFlatIP",
+  "model_name": "all-MiniLM-L6-v2",
+  "average_file_length": 9974.621212121212,
+  "files_by_directory": {
+    "smartspicerf": 42,
+    "harmony": 27,
+    "victorydoe": 227,
+    "deckbuild": 256,
+    "guardianlvs": 1,
+    "smartspicepro": 50,
+    "expert": 1,
+    "smartspice": 109,
+    "gateway": 1,
+    "hipex": 12
+  }
+}

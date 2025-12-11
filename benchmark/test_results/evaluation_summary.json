@@ -1,0 +1,61 @@
+{
+  "evaluation_info": {
+    "total_cases": 20,
+    "successful_cases": 20,
+    "failed_cases": 0,
+    "success_rate": 1.0,
+    "use_rag": true,
+    "use_fine_tuned": true
+  },
+  "performance_metrics": {
+    "avg_svs_score": 0.9,
+    "avg_pem_score": 0.08333333333333333,
+    "avg_ccs_score": 0.95,
+    "avg_composite_score": 0.6444444444444444,
+    "avg_generation_time": 35.46017857789993
+  },
+  "category_breakdown": {
+    "MOSFET": {
+      "count": 6,
+      "avg_composite_score": 0.7129629629629629,
+      "avg_svs_score": 1.0,
+      "avg_pem_score": 0.13888888888888887,
+      "avg_ccs_score": 1.0
+    },
+    "Diode": {
+      "count": 3,
+      "avg_composite_score": 0.5925925925925926,
+      "avg_svs_score": 0.6666666666666666,
+      "avg_pem_score": 0.1111111111111111,
+      "avg_ccs_score": 1.0
+    },
+    "BJT": {
+      "count": 3,
+      "avg_composite_score": 0.6666666666666666,
+      "avg_svs_score": 1.0,
+      "avg_pem_score": 0.0,
+      "avg_ccs_score": 1.0
+    },
+    "Photonic": {
+      "count": 2,
+      "avg_composite_score": 0.6666666666666666,
+      "avg_svs_score": 1.0,
+      "avg_pem_score": 0.0,
+      "avg_ccs_score": 1.0
+    },
+    "Sensor": {
+      "count": 2,
+      "avg_composite_score": 0.6666666666666666,
+      "avg_svs_score": 1.0,
+      "avg_pem_score": 0.0,
+      "avg_ccs_score": 1.0
+    },
+    "Edge Case": {
+      "count": 4,
+      "avg_composite_score": 0.5416666666666666,
+      "avg_svs_score": 0.75,
+      "avg_pem_score": 0.125,
+      "avg_ccs_score": 0.75
+    }
+  }
+}

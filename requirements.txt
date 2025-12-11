@@ -1,0 +1,12 @@
+transformers
+torch
+peft
+datasets
+sentence-transformers
+faiss-cpu
+numpy
+pandas
+scikit-learn
+tqdm
+accelerate
+bitsandbytes

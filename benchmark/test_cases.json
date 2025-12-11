@@ -1,0 +1,206 @@
+[
+  {
+    "id": "mosfet_01",
+    "category": "MOSFET",
+    "description": "Create a basic NMOS transistor with 1μm channel length, 10μm width, operating at 3V supply voltage with silicon substrate and silicon dioxide gate insulator. Include basic DC characteristics analysis.",
+    "expected": {
+      "device_type": "NMOS",
+      "parameters": ["L=1u", "W=10u", "VDD=3V"],
+      "materials": ["Silicon", "SiO2"],
+      "analysis": ["DC", "solve"]
+    }
+  },
+  {
+    "id": "mosfet_02", 
+    "category": "MOSFET",
+    "description": "Design a PMOS device with 0.5μm gate length, 20μm width, 1.8V supply, with body bias of -0.5V. Perform transient analysis with 1ns time steps for 100ns duration.",
+    "expected": {
+      "device_type": "PMOS",
+      "parameters": ["L=0.5u", "W=20u", "VDD=1.8V", "Vbody=-0.5V"],
+      "analysis": ["TRAN", "1n", "100n"]
+    }
+  },
+  {
+    "id": "mosfet_03",
+    "category": "MOSFET", 
+    "description": "Create a short-channel NMOS with 45nm gate length, 2μm width, high-k dielectric (HfO2), strain engineering, and 1V operating voltage. Include small-signal AC analysis from 1Hz to 1GHz.",
+    "expected": {
+      "device_type": "NMOS",
+      "parameters": ["L=45n", "W=2u", "VDD=1V"],
+      "materials": ["HfO2"],
+      "analysis": ["AC", "1Hz", "1GHz"]
+    }
+  },
+  {
+    "id": "mosfet_04",
+    "category": "MOSFET",
+    "description": "Design a power MOSFET with 10μm channel length, 1000μm width, 20V drain voltage capability, and thick gate oxide (50nm). Analyze breakdown characteristics and safe operating area.",
+    "expected": {
+      "device_type": "power MOSFET",
+      "parameters": ["L=10u", "W=1000u", "VDD=20V", "tox=50n"],
+      "analysis": ["breakdown", "SOA"]
+    }
+  },
+  {
+    "id": "mosfet_05",
+    "category": "MOSFET",
+    "description": "Create a FinFET structure with 14nm technology node, tri-gate configuration, 0.8V supply voltage, and undoped channel. Perform noise analysis and mobility characterization.",
+    "expected": {
+      "device_type": "FinFET",
+      "parameters": ["14n", "tri-gate", "VDD=0.8V"],
+      "analysis": ["noise", "mobility"]
+    }
+  },
+  {
+    "id": "mosfet_06",
+    "category": "MOSFET",
+    "description": "Design a dual-gate MOSFET with independent gate control, 2μm channel length, 50μm width, for RF applications at 2.4GHz. Include S-parameter analysis and stability factors.",
+    "expected": {
+      "device_type": "dual-gate MOSFET", 
+      "parameters": ["L=2u", "W=50u", "2.4GHz"],
+      "analysis": ["S-parameter", "stability"]
+    }
+  },
+  {
+    "id": "diode_01",
+    "category": "Diode",
+    "description": "Create a p-n junction diode with 10μm junction depth, 1e16 cm⁻³ doping concentration, and silicon material. Analyze forward and reverse I-V characteristics with temperature sweep from 25°C to 125°C.",
+    "expected": {
+      "device_type": "p-n diode",
+      "parameters": ["depth=10u", "doping=1e16", "temp=25-125"],
+      "materials": ["Silicon"],
+      "analysis": ["I-V", "temperature"]
+    }
+  },
+  {
+    "id": "diode_02",
+    "category": "Diode", 
+    "description": "Design a Schottky diode with platinum silicide contact, 0.7V barrier height, 100μm diameter circular geometry. Include capacitance-voltage analysis and switching speed characterization.",
+    "expected": {
+      "device_type": "Schottky diode",
+      "parameters": ["barrier=0.7V", "diameter=100u"],
+      "materials": ["PtSi"],
+      "analysis": ["C-V", "switching"]
+    }
+  },
+  {
+    "id": "diode_03",
+    "category": "Diode",
+    "description": "Create a PIN diode with 50μm intrinsic region width, heavily doped p+ and n+ regions (1e20 cm⁻³), for high-frequency switching applications. Analyze carrier lifetime and reverse recovery time.",
+    "expected": {
+      "device_type": "PIN diode",
+      "parameters": ["intrinsic=50u", "doping=1e20"],
+      "analysis": ["lifetime", "recovery"]
+    }
+  },
+  {
+    "id": "bjt_01",
+    "category": "BJT", 
+    "description": "Design an NPN bipolar junction transistor with 0.5μm base width, 1e18 cm⁻³ base doping, 1e16 cm⁻³ collector doping. Analyze common-emitter characteristics and current gain (β) versus collector current.",
+    "expected": {
+      "device_type": "NPN BJT",
+      "parameters": ["base_width=0.5u", "base_doping=1e18", "collector_doping=1e16"],
+      "analysis": ["common-emitter", "beta", "Ic"]
+    }
+  },
+  {
+    "id": "bjt_02",
+    "category": "BJT",
+    "description": "Create a PNP transistor with SiGe heterojunction base, 20% germanium content, for high-frequency analog applications. Include Gummel plot analysis and transit frequency measurement.",
+    "expected": {
+      "device_type": "PNP BJT",
+      "parameters": ["SiGe", "Ge=20%"],
+      "analysis": ["Gummel", "transit frequency"]
+    }
+  },
+  {
+    "id": "bjt_03",
+    "category": "BJT",
+    "description": "Design a power BJT with 10V collector-emitter breakdown voltage, 5A collector current capability, and thermal analysis including self-heating effects. Model safe operating area constraints.",
+    "expected": {
+      "device_type": "power BJT",
+      "parameters": ["BVCEO=10V", "Ic=5A"],
+      "analysis": ["thermal", "self-heating", "SOA"]
+    }
+  },
+  {
+    "id": "photonic_01",
+    "category": "Photonic",
+    "description": "Create a silicon photonic waveguide with 450nm width, 220nm thickness, operating at 1550nm wavelength. Include mode analysis and propagation loss calculations for TE and TM modes.",
+    "expected": {
+      "device_type": "photonic waveguide",
+      "parameters": ["width=450n", "thickness=220n", "wavelength=1550n"],
+      "materials": ["Silicon"],
+      "analysis": ["mode", "propagation", "TE", "TM"]
+    }
+  },
+  {
+    "id": "photonic_02",
+    "category": "Photonic",
+    "description": "Design a photodiode with InGaAs absorption layer (1μm thick), responsivity optimization for 1.3-1.6μm wavelength range, and bandwidth analysis up to 10GHz. Include quantum efficiency calculations.",
+    "expected": {
+      "device_type": "photodiode", 
+      "parameters": ["InGaAs", "thickness=1u", "1.3-1.6u", "10GHz"],
+      "analysis": ["responsivity", "bandwidth", "quantum efficiency"]
+    }
+  },
+  {
+    "id": "sensor_01",
+    "category": "Sensor",
+    "description": "Create a pressure sensor with piezoresistive elements, silicon membrane (10μm thickness), and Wheatstone bridge configuration. Analyze sensitivity and temperature coefficient over -40°C to +85°C range.",
+    "expected": {
+      "device_type": "pressure sensor",
+      "parameters": ["piezoresistive", "membrane=10u", "Wheatstone"],
+      "analysis": ["sensitivity", "temperature", "-40+85"]
+    }
+  },
+  {
+    "id": "sensor_02", 
+    "category": "Sensor",
+    "description": "Design a MEMS accelerometer with proof mass (500μm × 500μm), capacitive sensing with 2μm gap, and electrostatic actuation. Include dynamic response analysis and noise characterization.",
+    "expected": {
+      "device_type": "MEMS accelerometer",
+      "parameters": ["proof_mass=500u", "gap=2u", "capacitive"],
+      "analysis": ["dynamic", "noise"]
+    }
+  },
+  {
+    "id": "edge_01",
+    "category": "Edge Case",
+    "description": "Create a device with conflicting specifications: 1nm gate length with 10V operating voltage and room temperature operation. The system should handle impossible physical constraints gracefully.",
+    "expected": {
+      "device_type": "conflicting specs",
+      "parameters": ["L=1n", "V=10V"],
+      "issues": ["impossible", "breakdown"]
+    }
+  },
+  {
+    "id": "edge_02",
+    "category": "Edge Case", 
+    "description": "Design a circuit with missing critical parameters: 'Create a transistor with high performance for wireless applications' without specifying dimensions, materials, or operating conditions.",
+    "expected": {
+      "device_type": "underspecified",
+      "parameters": ["wireless", "high performance"],
+      "issues": ["missing parameters"]
+    }
+  },
+  {
+    "id": "edge_03",
+    "category": "Edge Case",
+    "description": "Generate code for a fictional device: 'quantum tunneling transistor with room-temperature superconducting contacts and negative resistance characteristics for time-travel applications'.",
+    "expected": {
+      "device_type": "fictional",
+      "parameters": ["quantum", "superconducting", "negative resistance"],
+      "issues": ["non-physical"]
+    }
+  },
+  {
+    "id": "edge_04",
+    "category": "Edge Case",
+    "description": "Process an extremely long description with repetitive information and irrelevant details about manufacturing equipment, operator names, laboratory conditions, and project deadlines mixed with actual device specifications for a simple diode.",
+    "expected": {
+      "device_type": "diode",
+      "issues": ["verbose", "irrelevant details"]
+    }
+  }
+]

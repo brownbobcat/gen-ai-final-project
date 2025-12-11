@@ -1,0 +1,45 @@
+go atlas
+
+# Adaptive mesh for L=0.5u, W=10.0u PMOS
+mesh space.mult=1.0
+x.mesh l=-0.500 spac=0.0050
+x.mesh l=0.0 spac=0.00100
+x.mesh l=0.500 spac=0.00100
+x.mesh l=1.000 spac=0.0050
+y.mesh l=0.0 spac=0.0010
+y.mesh l=0.0050 spac=0.00050
+y.mesh l=0.015 spac=0.002
+y.mesh l=0.1 spac=0.01
+y.mesh l=0.5 spac=0.05
+
+# Material regions
+region num=1 material=silicon x.min=-0.500 x.max=1.000 y.min=0.0 y.max=0.5
+region num=2 material=oxide x.min=0.0 x.max=0.500 y.min=0.0 y.max=0.0050
+
+# Electrodes
+electrode num=1 name=source x.min=-0.500 x.max=0.0 y.min=0.0 y.max=0.0
+electrode num=2 name=drain x.min=0.500 x.max=1.000 y.min=0.0 y.max=0.0
+electrode num=3 name=gate x.min=0.0 x.max=0.500 y.min=0.0050 y.max=0.0050
+
+# Doping profiles
+doping uniform n.type conc=1e15 region=1
+
+# Source/drain regions
+doping gaussian p.type conc=1e17 char.length=0.05 x.min=-0.500 x.max=0.0
+doping gaussian p.type conc=1e17 char.length=0.05 x.min=0.500 x.max=1.000
+
+# Physical models
+models srh auger fermi
+
+# Initial solution
+solve initial
+
+# Id-Vg curve extraction
+solve vdrain=-0.1 vgate=1.0 initial
+log outf=idvg_pmos_0.5u.log
+solve vgate=-3.0 vstep=-0.1 name=gate
+save outf=pmos_0.5u_idvg.str
+
+tonyplot idvg_pmos_0.5u.log
+
+quit
