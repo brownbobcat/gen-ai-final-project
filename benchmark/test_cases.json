@@ -1,23 +1,24 @@
 [
   {
-    "id": "mosfet_01",
+    "id": "spice_nmos_01",
     "category": "MOSFET",
-    "description": "Create a basic NMOS transistor with 1μm channel length, 10μm width, operating at 3V supply voltage with silicon substrate and silicon dioxide gate insulator. Include basic DC characteristics analysis.",
+    "description": "Create a basic NMOS transistor circuit with 1μm channel length, 10μm width, operating at 3V supply voltage. Include DC operating point analysis.",
     "expected": {
-      "device_type": "NMOS",
-      "parameters": ["L=1u", "W=10u", "VDD=3V"],
-      "materials": ["Silicon", "SiO2"],
-      "analysis": ["DC", "solve"]
+      "components": ["M1", "VDD"],
+      "parameters": ["L=1u", "W=10u", "DC=3V"],
+      "analysis": [".op", ".dc"],
+      "directives": [".model", ".end"]
     }
   },
   {
-    "id": "mosfet_02", 
+    "id": "spice_pmos_01", 
     "category": "MOSFET",
-    "description": "Design a PMOS device with 0.5μm gate length, 20μm width, 1.8V supply, with body bias of -0.5V. Perform transient analysis with 1ns time steps for 100ns duration.",
+    "description": "Design a PMOS transistor circuit with 0.5μm gate length, 20μm width, 1.8V supply voltage, with body bias of -0.5V. Perform transient analysis with 1ns time steps for 100ns duration.",
     "expected": {
-      "device_type": "PMOS",
-      "parameters": ["L=0.5u", "W=20u", "VDD=1.8V", "Vbody=-0.5V"],
-      "analysis": ["TRAN", "1n", "100n"]
+      "components": ["M1", "VDD", "VBIAS"],
+      "parameters": ["L=0.5u", "W=20u", "DC=1.8V"],
+      "analysis": [".tran"],
+      "directives": [".model", ".end"]
     }
   },
   {
@@ -62,14 +63,14 @@
     }
   },
   {
-    "id": "diode_01",
+    "id": "spice_diode_01",
     "category": "Diode",
-    "description": "Create a p-n junction diode with 10μm junction depth, 1e16 cm⁻³ doping concentration, and silicon material. Analyze forward and reverse I-V characteristics with temperature sweep from 25°C to 125°C.",
+    "description": "Create a p-n junction diode circuit with forward and reverse I-V characteristics analysis. Include temperature sweep from 25°C to 125°C and DC analysis.",
     "expected": {
-      "device_type": "p-n diode",
-      "parameters": ["depth=10u", "doping=1e16", "temp=25-125"],
-      "materials": ["Silicon"],
-      "analysis": ["I-V", "temperature"]
+      "components": ["D1", "V1"],
+      "parameters": ["temp=25", "temp=125"],
+      "analysis": [".dc", ".temp"],
+      "directives": [".model", ".end"]
     }
   },
   {
@@ -195,12 +196,24 @@
     }
   },
   {
-    "id": "edge_04",
+    "id": "spice_edge_01",
     "category": "Edge Case",
-    "description": "Process an extremely long description with repetitive information and irrelevant details about manufacturing equipment, operator names, laboratory conditions, and project deadlines mixed with actual device specifications for a simple diode.",
+    "description": "Process an extremely long description with repetitive information and irrelevant details about manufacturing equipment, operator names, laboratory conditions, and project deadlines mixed with actual device specifications for a simple resistor-capacitor circuit.",
     "expected": {
-      "device_type": "diode",
-      "issues": ["verbose", "irrelevant details"]
+      "components": ["R1", "C1"],
+      "analysis": [".tran"],
+      "directives": [".end"]
+    }
+  },
+  {
+    "id": "spice_amplifier_01", 
+    "category": "Amplifier",
+    "description": "Create a simple common-source NMOS amplifier with 1kΩ load resistor, 5V supply, and AC small-signal analysis from 1Hz to 1MHz.",
+    "expected": {
+      "components": ["M1", "R1", "VDD", "VIN"],
+      "parameters": ["R=1k", "DC=5V"],
+      "analysis": [".ac"],
+      "directives": [".model", ".end"]
     }
   }
 ]

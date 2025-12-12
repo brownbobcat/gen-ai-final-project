@@ -1,13 +1,13 @@
-# Fine-Tuned Language Model for Silvaco TCAD Code Generation
+# Fine-Tuned Language Model for SPICE Circuit Code Generation
 
 ## Abstract
 
-This report presents a specialized language model system for generating Silvaco ATLAS simulation code from natural language descriptions. We fine-tuned Qwen2-0.5B using LoRA on a curated dataset of semiconductor device simulations and developed a comprehensive evaluation framework. Our approach combines domain-specific fine-tuning with Retrieval-Augmented Generation (RAG) and enhanced Few-Shot Learning to achieve structured code generation for TCAD applications. Through advanced prompt engineering (Assignment 4), we achieved a 152% performance improvement with Few-Shot Learning techniques, reaching a composite score of 0.59 on 20 diverse test cases, demonstrating the model's ability to generate syntactically valid and complete simulation decks.
+This report presents a specialized language model system for generating SPICE circuit netlists from natural language descriptions. We fine-tuned Qwen2-0.5B using LoRA on a curated dataset of SPICE circuit examples and developed a comprehensive evaluation framework tailored for circuit simulation code. Our approach combines domain-specific fine-tuning with parameter-efficient training to achieve structured SPICE netlist generation for electronic circuit applications. The retrained model achieves a composite score of 0.37 on 21 diverse test cases, demonstrating the model's ability to generate syntactically valid SPICE netlists with proper component instantiation and analysis commands.
 
 ## 1. Introduction and Model Selection
 
 ### Problem Statement
-Generating simulation code for semiconductor devices requires deep domain expertise and precise parameter specification. Manual creation of Silvaco ATLAS decks is time-consuming and error-prone, creating a need for automated code generation tools.
+Generating SPICE circuit netlists for electronic circuit simulation requires deep domain expertise and precise component specification. Manual creation of SPICE netlists is time-consuming and error-prone, creating a need for automated circuit code generation tools that can translate natural language circuit descriptions into valid simulation netlists.
 
 ### Model Selection Rationale
 We selected **Qwen2-0.5B** as our base model for several key reasons:
@@ -19,15 +19,14 @@ We selected **Qwen2-0.5B** as our base model for several key reasons:
 
 Alternative models considered:
 - **CodeT5-small**: Too specialized for Python/web code
-- **GPT-2**: Older architecture, less effective instruction following
+- **GPT-2**: Older architecture, less effective instruction following  
 - **TinyLlama-1.1B**: Exceeds parameter limit
 
 ### Architecture Overview
-Our system combines four key components:
+Our system combines three key components:
 1. **Fine-tuned Qwen2-0.5B** with LoRA adapters (498,431,872 total parameters)
-2. **Enhanced Few-Shot Learning** with professional SPICE templates and dynamic parameter extraction
-3. **RAG system** using FAISS vector search with all-MiniLM-L6-v2 embeddings
-4. **Evaluation framework** with custom metrics for SPICE validation
+2. **SPICE dataset training** on curated circuit netlist examples
+3. **Evaluation framework** with custom metrics for SPICE validation
 
 ### Model Architecture Details
 **Qwen2-0.5B Base Model**:
@@ -46,14 +45,13 @@ Our system combines four key components:
 ## 2. Training Methodology
 
 ### Dataset Preparation
-- Google Colab Notebook: https://colab.research.google.com/drive/17MjRT7seFHz-GHnvKIb57jH9Yv2I-AGy?usp=sharing
 
-We curated a specialized dataset of Silvaco ATLAS simulation files:
-- **713 training samples** and **36 validation samples** from official Silvaco repositories
-- **Device coverage**: MOSFETs, diodes, BJTs, power devices, RF circuits
-- **Preprocessing**: Template extraction, parameter normalization, syntax validation
-- **Format**: Instruction-response pairs with natural language descriptions
-- **Columns**: `['instruction', 'input', 'output']` with combined text formatting
+We curated a specialized dataset of SPICE circuit netlists:
+- **Training data**: `spice_clean_final.json` with diverse circuit examples
+- **Circuit coverage**: Amplifiers, oscillators, filters, mixed-signal circuits, RF designs
+- **Preprocessing**: Netlist extraction, comment removal, syntax validation
+- **Format**: Instruction-response pairs with natural language circuit descriptions
+- **Examples**: VCOs, LNAs, switched-capacitor circuits, power amplifiers, modulators
 
 ### Fine-Tuning Configuration
 We employed LoRA (Low-Rank Adaptation) for parameter-efficient fine-tuning:
@@ -155,39 +153,40 @@ To provide contextual examples during generation:
 ## 3. Benchmark Design and Metrics
 
 ### Custom Benchmark Creation
-We designed a comprehensive benchmark with 20 test cases covering:
+We designed a comprehensive benchmark with 21 test cases covering:
 
-**Device Categories**:
-- Basic devices (25%): NMOS, PMOS, diodes, BJTs
-- Advanced devices (15%): FinFETs, SOI devices, tunnel FETs  
-- Analog circuits (20%): Op-amps, current mirrors, differential pairs
-- RF devices (15%): VCOs, LNAs, mixers
-- Power/sensors (20%): Power MOSFETs, MEMS, photonics
-- Edge cases (5%): Conflicting specifications, missing parameters
+**Circuit Categories**:
+- MOSFET circuits (29%): Basic NMOS/PMOS amplifiers, power devices
+- Diode circuits (14%): p-n junctions, Schottky diodes, PIN diodes
+- BJT circuits (14%): Bipolar amplifiers, power transistors
+- Photonic devices (10%): Waveguides, photodiodes
+- Sensor circuits (10%): MEMS accelerometers, pressure sensors
+- Amplifier circuits (5%): Common-source amplifiers
+- Edge cases (18%): Conflicting specifications, missing parameters
 
-**Training Set Independence**: All benchmark prompts are custom-designed to be distinct from training data. Training examples focus on complex RF circuit netlists (200+ words) while benchmark prompts target basic device physics (30-50 words), ensuring fair evaluation of generalization capabilities without data leakage.
+**Training Set Independence**: All benchmark prompts are custom-designed to be distinct from training data, ensuring fair evaluation of generalization capabilities without data leakage.
 
 **Difficulty Distribution**:
 - Easy (20%): Single devices with basic parameters
-- Medium (40%): Multi-component devices with specific requirements
-- Hard (40%): Complex circuits with advanced physics models
+- Medium (40%): Multi-component circuits with specific requirements  
+- Hard (40%): Complex circuits with advanced analysis requirements
 
 ### Evaluation Metrics
 We implemented four complementary metrics:
 
 #### Syntax Validity Score (SVS)
-**Purpose**: Validates presence of essential Silvaco command structure
-**Required sections**: `go atlas`, `mesh`, `region`, `electrode`, `models`, `solve`, `quit`
+**Purpose**: Validates presence of essential SPICE netlist structure
+**Required sections**: `.END`, analysis commands, circuit components, node connections
 **Scoring**: Binary (1.0 if all present, 0.0 otherwise)
 
 #### Parameter Exact Match (PEM)
-**Purpose**: Measures accuracy of extracted device parameters  
-**Method**: Regex-based extraction with fuzzy matching for dimensions, voltages, doping levels
+**Purpose**: Measures accuracy of extracted circuit parameters  
+**Method**: Regex-based extraction with fuzzy matching for dimensions, voltages, resistances, capacitances
 **Scoring**: Percentage of expected parameters correctly identified
 
 #### Component Completeness Score (CCS)
-**Purpose**: Evaluates presence of simulation components across 6 categories
-**Categories**: Structure, Electrodes, Parameters, Analysis, Models, Output
+**Purpose**: Evaluates presence of circuit components across 6 categories
+**Categories**: Devices (M, Q, D), Passive (R, C, L), Sources (V, I), Analysis, Directives, Output
 **Scoring**: Average of binary scores (≥1 keyword per category)
 
 #### BLEU Similarity (Optional)
@@ -200,36 +199,38 @@ We implemented four complementary metrics:
 
 ### Overall Performance
 
-**Enhanced System with Few-Shot Learning (Assignment 4):**
+**SPICE Circuit Generation Results:**
 
-| Metric | Enhanced Score | Baseline Score | Improvement |
-|--------|----------------|----------------|-------------|
-| SVS (Syntax) | 0.75 | 0.50 | +50% |
-| PEM (Parameters) | 0.14 | 0.17 | Improved extraction patterns |
-| CCS (Completeness) | 0.90 | 0.58 | +55% |
-| **Composite** | **0.59** | **0.42** | **+152%** |
+| Metric | Score | Performance |
+|--------|-------|-------------|
+| SVS (Syntax) | 0.48 | Moderate syntax structure recognition |
+| PEM (Parameters) | 0.07 | Parameter extraction challenging |
+| CCS (Completeness) | 0.56 | Good component coverage |
+| **Composite** | **0.37** | **Baseline SPICE generation capability** |
 
-**Success Rate**: 100% (Enhanced Few-Shot prompts generate clean, valid code)
-**Average Generation Time**: 54.9 seconds (enhanced prompts + RAG)
+**Success Rate**: 100% (All 21 test cases generated successfully)
+**Average Generation Time**: 37.7 seconds
 
 ### Performance Analysis
 
 **Strengths**:
-1. **Syntax Structure**: Model learned essential Silvaco command patterns effectively
-2. **Component Coverage**: Reasonable inclusion of required simulation elements  
-3. **Reliability**: No generation failures across diverse test cases
-4. **Prompt Following**: Generated code aligned with device descriptions
+1. **Reliability**: 100% success rate across all 21 diverse test cases
+2. **Basic Structure**: Model generates recognizable SPICE netlist patterns
+3. **Component Recognition**: Decent coverage of essential circuit components
+4. **Termination**: Consistent `.END` statement generation
 
 **Weaknesses**:
-1. **Parameter Extraction**: Low PEM scores indicate difficulty mapping natural language to specific numerical parameters
-2. **Precision**: Generated parameters often generic rather than specification-matched
-3. **Advanced Features**: Complex physics models and optimization not consistently included
+1. **Parameter Mapping**: Very low PEM scores (0.07) indicate difficulty extracting specific numerical values
+2. **Syntax Completeness**: Moderate SVS scores suggest missing essential SPICE elements
+3. **Repetitive Patterns**: Some generations show repetitive or template-like behavior
 
 ### Category-Specific Results
-- **MOSFET devices**: Best performance (0.713 average composite) with perfect syntax
-- **BJT/Photonic/Sensor devices**: Consistent good performance (0.667 average composite)
-- **Diode devices**: Moderate performance (0.593 average) due to syntax variations  
-- **Edge cases**: Reasonable handling (0.542 average) of impossible/underspecified prompts
+- **MOSFET circuits**: Best performance (0.44 average composite) with reasonable syntax
+- **Diode circuits**: Good performance (0.44 average composite) 
+- **BJT circuits**: Moderate performance (0.33 average composite)
+- **Amplifier circuits**: Strong performance (0.61 composite) for simple circuits
+- **Photonic devices**: Challenging (0.11 average) - complex physics models struggle
+- **Edge cases**: Reasonable handling (0.35 average) of underspecified prompts
 
 ## 5. Failure Case Analysis
 

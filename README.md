@@ -1,44 +1,43 @@
-# Silvaco TCAD Code Generation with Fine-Tuned LLM
+# SPICE Circuit Code Generation with Fine-Tuned LLM
 
-A specialized language model system for generating Silvaco ATLAS simulation code from natural language descriptions. This project combines domain-specific fine-tuning with Retrieval-Augmented Generation (RAG) to automate semiconductor device simulation code creation.
+A specialized language model system for generating SPICE circuit netlists from natural language descriptions. This project combines domain-specific fine-tuning with parameter-efficient training to automate electronic circuit simulation code creation.
 
 ## 🎯 Overview
 
-This system addresses the challenge of converting natural language device descriptions into precise Silvaco ATLAS simulation decks. It features:
+This system addresses the challenge of converting natural language circuit descriptions into precise SPICE simulation netlists. It features:
 
 - **Fine-tuned Qwen2-0.5B** model with LoRA adapters (4.4M trainable parameters, 0.88% of total model)
-- **Enhanced Few-Shot Learning** with professional TCAD templates and pattern analysis
-- **RAG-enhanced generation** using vector search over simulation databases  
-- **Comprehensive benchmark** with 20 diverse test cases across device categories
-- **Multi-metric evaluation** framework with domain-specific metrics
-- **Assignment 4 Integration**: Advanced prompt engineering with 152% performance improvement
+- **SPICE-focused training** on diverse circuit examples including amplifiers, oscillators, and RF circuits
+- **Comprehensive benchmark** with 21 diverse test cases across circuit categories
+- **Multi-metric evaluation** framework with SPICE-specific validation
+- **Parameter-efficient fine-tuning** achieving effective domain adaptation
 
 ## 📁 Project Structure
 
 ```
 project solution/
 ├── src/                          # Source code
-│   ├── generate.py              # Main generation script (with Few-Shot Learning)
-│   ├── enhanced_prompts.py      # Professional TCAD prompt templates
-│   ├── prompt_engineering.py    # Assignment 4: Prompt engineering techniques  
-│   ├── train_qlora.py           # Training script (for GPU)
-│   ├── train_qlora_cpu.py       # CPU training demo
+│   ├── generate.py              # Main SPICE generation script
+│   ├── enhanced_prompts.py      # Professional circuit prompt templates
+│   ├── prompt_engineering.py    # Advanced prompt engineering techniques  
+│   ├── train_qlora.py           # LoRA training script (for GPU)
 │   ├── preprocess.py            # Data preprocessing
-│   └── rag_retrieve.py          # RAG implementation
+│   ├── rag_retrieve.py          # RAG implementation
+│   └── templates.py             # Circuit template system
 ├── model/                        # Model files
 │   ├── adapter_model/           # LoRA adapters
 │   └── tokenizer/               # Tokenizer files
 ├── data/                        # Training data
-│   ├── raw/                     # Original Silvaco files
+│   ├── spice_clean_final.json   # SPICE circuit dataset
 │   └── processed/               # Preprocessed datasets
 ├── benchmark/                    # Evaluation framework
-│   ├── test_cases.json          # 20 test cases
+│   ├── test_cases.json          # 21 SPICE test cases
 │   ├── eval.py                  # Evaluation pipeline
-│   ├── metrics.py               # Custom metrics
+│   ├── metrics.py               # SPICE validation metrics
 │   ├── benchmark_design.md      # Design documentation
-│   └── test_results/            # Evaluation results
+│   └── test_results_spice/      # Latest evaluation results
 ├── technical_report.md          # Technical report (4 pages)
-├── prompt_engineering_report.md # Assignment 4: Prompt engineering report
+├── prompt_engineering_report.md # Prompt engineering techniques
 └── README.md                    # This file
 ```
 
@@ -73,34 +72,34 @@ ls model/tokenizer/      # Should show tokenizer files
 
 ### Basic Usage
 
-#### Generate Silvaco Code
+#### Generate SPICE Circuit Code
 
 ```bash
 # Basic generation
 python src/generate.py \
-  --input "Design a basic NMOS transistor for digital logic" \
-  --output result.in
+  --input "Design a basic NMOS amplifier with 1k load resistor" \
+  --output result.sp
 
 # With custom parameters
 python src/generate.py \
-  --input "Create a VCO using NMOS cross-coupled pair with LC tank" \
+  --input "Create a common-source amplifier with 5V supply and AC analysis" \
   --adapter_path model/adapter_model \
-  --output vco_simulation.in \
-  --temperature 0.1 \
-  --max-length 1024
+  --output amplifier.sp \
+  --temperature 0.2 \
+  --max-length 600
 ```
 
 #### Run Benchmark Evaluation
 
 ```bash
-# Quick test (2 cases)
-python benchmark/eval.py --sample 2 --output-dir benchmark/results
+# Quick test (5 cases)
+python benchmark/eval.py --sample 5 --output-dir benchmark/test_results_spice
 
-# Full evaluation (20 cases) 
-python benchmark/eval.py --output-dir benchmark/results
+# Full evaluation (21 cases) 
+python benchmark/eval.py --output-dir benchmark/test_results_spice
 
 # No RAG (faster)
-python benchmark/eval.py --no-rag --sample 5 --output-dir benchmark/results
+python benchmark/eval.py --no-rag --sample 5 --output-dir benchmark/test_results_spice
 ```
 
 ## 📊 Evaluation Framework
@@ -108,15 +107,15 @@ python benchmark/eval.py --no-rag --sample 5 --output-dir benchmark/results
 ### Metrics Implemented
 
 1. **Syntax Validity Score (SVS)**
-   - Checks for required Silvaco sections (`go atlas`, `mesh`, `region`, etc.)
+   - Checks for required SPICE sections (`.END`, analysis, components, nodes)
    - Binary score: 1.0 if all present, 0.0 otherwise
 
 2. **Parameter Exact Match (PEM)**
-   - Extracts and matches device parameters (L, W, voltages, doping)
+   - Extracts and matches circuit parameters (L, W, voltages, resistances, capacitances)
    - Score: percentage of expected parameters found
 
 3. **Component Completeness Score (CCS)**  
-   - Evaluates presence of simulation components across 6 categories
+   - Evaluates presence of circuit components across 6 categories
    - Score: average of category completion rates
 
 4. **BLEU Similarity (Optional)**
@@ -125,27 +124,23 @@ python benchmark/eval.py --no-rag --sample 5 --output-dir benchmark/results
 
 ### Test Cases
 
-20 diverse test cases covering:
-- **Basic devices** (5): NMOS, PMOS, diodes, BJTs, JFETs
-- **Advanced devices** (3): FinFETs, SOI devices, tunnel FETs
-- **Analog circuits** (4): Op-amps, current mirrors, differential pairs  
-- **RF devices** (3): VCOs, LNAs, RF MOSFETs
-- **Power/sensors** (4): Power devices, MEMS, photonics
-- **Edge cases** (1): Conflicting specs, missing parameters
+21 diverse test cases covering:
+- **MOSFET circuits** (6): NMOS/PMOS amplifiers, power devices, FinFETs
+- **Diode circuits** (3): p-n junctions, Schottky diodes, PIN diodes
+- **BJT circuits** (3): Bipolar amplifiers, power transistors
+- **Photonic devices** (2): Waveguides, photodiodes
+- **Sensor circuits** (2): MEMS accelerometers, pressure sensors
+- **Amplifier circuits** (1): Common-source amplifiers
+- **Edge cases** (4): Conflicting specs, missing parameters
 
-### Performance Baselines
+### Performance Results
 
-**Enhanced System with Few-Shot Learning:**
-- **SVS**: 0.75 (excellent syntax structure with Few-Shot templates)
-- **PEM**: 0.14 (parameter extraction improved but challenging)  
-- **CCS**: 0.90 (excellent component coverage)
-- **Composite**: 0.59 (152% improvement over baseline - Assignment 4 results)
-
-**Original System Performance:**
-- **SVS**: 0.50 (baseline syntax structure learning)
-- **PEM**: 0.17 (baseline parameter extraction)  
-- **CCS**: 0.58 (baseline component coverage)
-- **Composite**: 0.42 (baseline performance)
+**SPICE Generation Performance:**
+- **SVS**: 0.48 (moderate syntax structure recognition)
+- **PEM**: 0.07 (parameter extraction challenging)  
+- **CCS**: 0.56 (good component coverage)
+- **Composite**: 0.37 (baseline SPICE generation capability)
+- **Success Rate**: 100% (all 21 test cases completed successfully)
 
 ### Training Performance
 
@@ -435,13 +430,6 @@ Check category breakdown in results for:
 - Complexity-dependent score distributions  
 - Failure mode identification
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/new-metric`)
-3. Add tests for new functionality
-4. Submit pull request with detailed description
-
 ### Development Setup
 
 ```bash
@@ -472,11 +460,5 @@ This project is for academic use. See individual component licenses for specific
 - Nirmit Dagli
 - Tamuka Manjemu
 - Project for Generative AI Course, Fall 2025
-
-## 🙏 Acknowledgments
-
-- Silvaco for TCAD simulation examples
-- Hugging Face for model infrastructure
-- Course instructors and TAs for guidance
 
 

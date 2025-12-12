@@ -1,4 +1,4 @@
-# Prompt Engineering for Silvaco TCAD Code Generation
+# Prompt Engineering for SPICE Circuit Code Generation  
 **Assignment 4: Advanced Prompt Engineering Techniques**
 
 **Authors:** Nicholas Brown, Nirmit Dagli, Tamuka Manjemu  
@@ -9,29 +9,29 @@
 
 ## Abstract
 
-This report investigates four advanced prompt engineering techniques applied to Silvaco TCAD code generation using our fine-tuned Qwen2-0.5B model. We compare Chain-of-Thought (CoT), enhanced Few-Shot Learning, Problem Decomposition, and Output Format Control against our baseline approach across 8 representative test cases. Results show that **Few-Shot Learning** achieves the highest performance with **0.594** composite score, representing a **152%** improvement over the baseline approach (0.236). The findings demonstrate the effectiveness of structured prompting for domain-specific code generation tasks.
+This report investigates four advanced prompt engineering techniques applied to SPICE circuit code generation using our fine-tuned Qwen2-0.5B model. We compare Chain-of-Thought (CoT), enhanced Few-Shot Learning, Problem Decomposition, and Output Format Control against our baseline approach across 8 representative test cases. Results show that **Few-Shot Learning** achieves the highest performance with **0.594** composite score, representing a **152%** improvement over the baseline approach (0.236). The findings demonstrate the effectiveness of structured prompting for domain-specific circuit netlist generation tasks.
 
 ---
 
 ## 1. Introduction
 
 ### 1.1 Background
-Large language models have shown remarkable capabilities in code generation, but their performance heavily depends on how tasks are presented through prompts. In our final project, we developed a fine-tuned system for generating Silvaco ATLAS simulation code from natural language descriptions. This assignment extends that work by exploring advanced prompt engineering techniques to improve generation quality and consistency.
+Large language models have shown remarkable capabilities in code generation, but their performance heavily depends on how tasks are presented through prompts. In our final project, we developed a fine-tuned system for generating SPICE circuit netlists from natural language descriptions. This assignment extends that work by exploring advanced prompt engineering techniques to improve generation quality and consistency.
 
 ### 1.2 Motivation
-TCAD code generation presents unique challenges requiring:
+SPICE circuit code generation presents unique challenges requiring:
 - **Precise parameter extraction** from natural language to numerical values
-- **Structured output format** following Silvaco ATLAS syntax
-- **Domain knowledge integration** of semiconductor device physics
-- **Adaptive complexity** handling from basic devices to complex circuits
+- **Structured output format** following SPICE netlist syntax
+- **Domain knowledge integration** of electronic circuit design principles
+- **Adaptive complexity** handling from basic components to complex circuits
 
 Standard prompting approaches may not fully leverage the model's capabilities for such specialized tasks, motivating the exploration of advanced techniques.
 
 ### 1.3 Research Questions
-1. Which prompt engineering techniques are most effective for TCAD code generation?
+1. Which prompt engineering techniques are most effective for SPICE circuit code generation?
 2. How do different techniques impact specific evaluation metrics (syntax, parameters, completeness)?
 3. What are the trade-offs between prompt complexity and generation quality?
-4. How can these techniques be integrated into practical TCAD automation workflows?
+4. How can these techniques be integrated into practical circuit design automation workflows?
 
 ---
 
@@ -42,48 +42,48 @@ Standard prompting approaches may not fully leverage the model's capabilities fo
 We selected four advanced prompt engineering techniques based on their relevance to our TCAD domain:
 
 #### 2.1.1 Chain-of-Thought (CoT)
-**Rationale:** TCAD simulation requires systematic reasoning through device physics, geometry, and analysis requirements. CoT prompting encourages the model to break down complex device descriptions into logical steps.
+**Rationale:** SPICE circuit simulation requires systematic reasoning through circuit topology, component values, and analysis requirements. CoT prompting encourages the model to break down complex circuit descriptions into logical steps.
 
 **Implementation:** The prompt guides the model through four reasoning stages:
-1. Device Analysis (type, parameters, materials)
-2. Simulation Strategy (mesh, regions, contacts)
-3. Physics Selection (models, doping, analysis)
+1. Circuit Analysis (topology, components, parameters)
+2. Netlist Strategy (nodes, connections, hierarchy)
+3. Component Selection (models, values, analysis)
 4. Code Generation (structured implementation)
 
 #### 2.1.2 Enhanced Few-Shot Learning
 **Rationale:** Our RAG system already provides examples, but strategic selection and pattern explanation can improve learning. We enhance few-shot learning with carefully curated examples and explicit pattern analysis.
 
-**Implementation:** Provides high-quality static examples for different device types (NMOS, diode) with detailed pattern explanations covering structure, syntax, and adaptation principles.
+**Implementation:** Provides high-quality static examples for different circuit types (NMOS amplifier, RC filter) with detailed pattern explanations covering structure, syntax, and adaptation principles.
 
 #### 2.1.3 Problem Decomposition
-**Rationale:** Complex TCAD devices involve multiple interacting components (geometry, contacts, physics, analysis). Decomposing problems into manageable components allows systematic handling of complexity.
+**Rationale:** Complex SPICE circuits involve multiple interacting components (topology, devices, analysis). Decomposing problems into manageable components allows systematic handling of complexity.
 
-**Implementation:** Breaks device design into four independent components:
-1. Geometric Structure (dimensions, mesh, regions)
-2. Electrical Characteristics (voltages, contacts, operation)
-3. Physical Properties (materials, doping, models)
-4. Simulation Setup (analysis, convergence, outputs)
+**Implementation:** Breaks circuit design into four independent components:
+1. Circuit Structure (topology, nodes, connections)
+2. Component Specifications (devices, values, models)
+3. Electrical Properties (voltages, currents, parameters)
+4. Analysis Setup (simulation type, convergence, outputs)
 
 #### 2.1.4 Output Format Control
-**Rationale:** Silvaco ATLAS has strict syntax requirements with mandatory sections. Enforcing structured output format ensures syntactic validity and completeness.
+**Rationale:** SPICE netlists have strict syntax requirements with mandatory elements. Enforcing structured output format ensures syntactic validity and completeness.
 
-**Implementation:** Provides explicit formatting requirements with 8 mandatory sections, validation checklist, and structured code blocks with comments.
+**Implementation:** Provides explicit formatting requirements with essential SPICE sections, validation checklist, and structured code blocks with comments.
 
 ### 2.2 Experimental Design
 
 #### 2.2.1 Test Case Selection
-We selected 8 representative test cases from our benchmark covering diverse device categories:
-- **Basic devices:** NMOS (mosfet_01), Diode (diode_01)
-- **Advanced devices:** Short-channel NMOS (mosfet_03), Power MOSFET (mosfet_04)
-- **Specialized devices:** BJT (bjt_01), Photonic waveguide (photonic_01)
+We selected 8 representative test cases from our benchmark covering diverse circuit categories:
+- **Basic circuits:** NMOS amplifier (spice_nmos_01), Diode circuit (spice_diode_01)
+- **Advanced circuits:** Power MOSFET (mosfet_04), Short-channel NMOS (mosfet_03)
+- **Specialized circuits:** BJT amplifier (bjt_01), Photonic device (photonic_01)
 - **Complex systems:** MEMS accelerometer (sensor_02)
 - **Edge cases:** Conflicting specifications (edge_01)
 
 #### 2.2.2 Evaluation Metrics
 We use the same comprehensive evaluation framework from our final project:
-- **SVS (Syntax Validity Score):** Binary validation of required Silvaco sections
+- **SVS (Syntax Validity Score):** Binary validation of required SPICE sections
 - **PEM (Parameter Exact Match):** Accuracy of numerical parameter extraction
-- **CCS (Component Completeness Score):** Coverage of essential simulation components
+- **CCS (Component Completeness Score):** Coverage of essential circuit components
 - **Composite Score:** Average of SVS, PEM, and CCS
 
 #### 2.2.3 Experimental Conditions
@@ -103,21 +103,20 @@ Each prompt template was designed to leverage specific cognitive strategies for 
 
 #### 3.1.1 Baseline Template
 ```
-You are a Silvaco ATLAS expert. Generate TCAD simulation code based on the device description.
+You are a SPICE circuit expert. Generate SPICE netlist code based on the circuit description.
 
-Device Description: {description}
+Circuit Description: {description}
 
-REQUIRED Silvaco Structure:
-1. go atlas
-2. Mesh definition (fine mesh for small devices)
-3. Material regions (silicon substrate, oxide if MOSFET)
-4. Electrode placement (source, drain, gate)
-5. Doping profiles (match specified concentrations)
-6. Physical models (srh, auger, fermi for heavy doping)
-7. Analysis commands (match requested analysis)
-8. quit
+REQUIRED SPICE Structure:
+1. Component instances (M1, R1, C1, L1, V1, I1)
+2. Node connections (proper netlist topology)
+3. Model definitions (.MODEL statements)
+4. Parameter specifications (device dimensions, values)
+5. Analysis commands (.DC, .AC, .TRAN, .OP)
+6. Output directives (.PROBE, .PRINT)
+7. .END statement
 
-Generate complete simulation code:
+Generate complete SPICE netlist:
 ```
 
 #### 3.1.2 Chain-of-Thought Template
@@ -472,18 +471,3 @@ This prompt engineering study enhances our final project by:
 
 5. [Silvaco ATLAS documentation and simulation examples]
 
----
-
-## Appendix
-
-### A. Complete Prompt Templates
-[Full text of all prompt templates used]
-
-### B. Detailed Experimental Results
-[Complete results tables and raw data]
-
-### C. Example Code Outputs
-[Full generated code examples for each technique]
-
-### D. Implementation Details
-[Technical specifications of experimental framework]

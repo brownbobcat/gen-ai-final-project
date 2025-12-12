@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-metrics.py - Evaluation metrics for Silvaco TCAD code generation
+metrics.py - Evaluation metrics for SPICE circuit code generation
 Implements SVS, PEM, CCS, and BLEU metrics as required
 """
 
@@ -12,36 +12,33 @@ from collections import Counter
 import numpy as np
 
 
-class SilvacoMetrics:
-    """Evaluation metrics for Silvaco TCAD code generation"""
+class SPICEMetrics:
+    """Evaluation metrics for SPICE circuit code generation"""
     
     def __init__(self):
         """Initialize metrics calculator"""
-        # Required Silvaco sections for syntax validation
+        # Required SPICE sections for syntax validation
         self.required_sections = [
-            'go atlas',      # Start Atlas
-            'mesh',          # Mesh definition
-            'region',        # Device regions
-            'electrode',     # Electrodes/contacts
-            'models',        # Physical models
-            'solve',         # Solution commands
-            'quit'           # End simulation
+            '.end',          # End of netlist (required)
+            'analysis',      # Analysis command (.tran, .ac, .dc, .op)
+            'components',    # Circuit components (M, R, C, L, V, I)
+            'nodes'          # Node connections
         ]
         
         # Component categories for CCS
         self.component_categories = {
-            'structure': ['mesh', 'region', 'material'],
-            'electrodes': ['electrode', 'contact'],
-            'parameters': ['doping', 'material', 'models'],
-            'analysis': ['solve', 'log', 'save'],
-            'models': ['models', 'material', 'method'],
-            'output': ['log', 'save', 'extract', 'quit']
+            'devices': ['m', 'q', 'd', 'j'],  # MOSFETs, BJTs, diodes, JFETs
+            'passive': ['r', 'c', 'l'],       # Resistors, capacitors, inductors  
+            'sources': ['v', 'i'],            # Voltage/current sources
+            'analysis': ['.tran', '.ac', '.dc', '.op', '.noise', '.tf'],
+            'directives': ['.param', '.model', '.include', '.lib', '.subckt'],
+            'output': ['.print', '.probe', '.measure', '.save', '.plot']
         }
     
     def syntax_validity_score(self, generated_code: str) -> Dict[str, any]:
         """
         Syntax Validity Score (SVS)
-        Detects presence of required Silvaco sections
+        Detects presence of required SPICE sections
         Returns 1 if all required sections present, 0 otherwise
         """
         code_lower = generated_code.lower()
@@ -50,13 +47,39 @@ class SilvacoMetrics:
         sections_found = []
         sections_missing = []
         
-        for section in self.required_sections:
-            if section in code_lower:
-                sections_found.append(section)
-            else:
-                sections_missing.append(section)
+        # Check for .END statement (required)
+        if '.end' in code_lower:
+            sections_found.append('.end')
+        else:
+            sections_missing.append('.end')
         
-        # Calculate score (binary: all or nothing)
+        # Check for analysis commands
+        analysis_commands = ['.tran', '.ac', '.dc', '.op', '.noise', '.tf']
+        has_analysis = any(cmd in code_lower for cmd in analysis_commands)
+        if has_analysis:
+            sections_found.append('analysis')
+        else:
+            sections_missing.append('analysis')
+        
+        # Check for circuit components
+        component_patterns = [r'\bm\d+', r'\br\d+', r'\bc\d+', r'\bl\d+', r'\bv\d+', r'\bi\d+', 
+                             r'\bq\d+', r'\bd\d+', r'\bj\d+', r'\bx\d+']
+        has_components = any(re.search(pattern, code_lower) for pattern in component_patterns)
+        if has_components:
+            sections_found.append('components')
+        else:
+            sections_missing.append('components')
+        
+        # Check for node connections (at least 2 nodes per component)
+        node_pattern = r'\b[a-zA-Z_][a-zA-Z0-9_]*\b|\b\d+\b'
+        nodes = set(re.findall(node_pattern, code_lower))
+        has_nodes = len(nodes) >= 2  # At least GND and one other node
+        if has_nodes:
+            sections_found.append('nodes')
+        else:
+            sections_missing.append('nodes')
+        
+        # Calculate score (binary: all or nothing for core sections)
         score = 1.0 if len(sections_missing) == 0 else 0.0
         
         # Also calculate partial score for analysis
@@ -79,17 +102,18 @@ class SilvacoMetrics:
         if not expected_params:
             return {'pem_score': 1.0, 'matched_params': [], 'missing_params': [], 'extracted_params': []}
         
-        # Parameter extraction patterns
+        # Parameter extraction patterns for SPICE
         param_patterns = {
-            'dimensions': r'(?:L|W|length|width)\s*=\s*([0-9.]+[unm]?)',
-            'voltages': r'(?:V\w*|voltage)\s*=\s*([0-9.-]+[V]?)',
-            'doping': r'(?:doping|conc)\s*=\s*([0-9.e+-]+)',
-            'temperature': r'(?:temp|temperature)\s*=\s*([0-9.-]+)',
-            'frequency': r'(?:freq|frequency)\s*=\s*([0-9.]+[GMK]?[Hh]z)',
-            'thickness': r'(?:thickness|tox)\s*=\s*([0-9.]+[unm]?)',
-            'materials': r'(?:material)\s*=\s*([A-Za-z0-9]+)',
-            'models': r'(?:models|model)\s+([A-Za-z0-9\s]+)',
-            'spacing': r'(?:spac|spacing)\s*=\s*([0-9.]+[unm]?)'
+            'dimensions': r'(?:L|W|length|width)\s*=\s*([0-9.]+[unmpf]?)',
+            'voltages': r'(?:V\w*|voltage|DC)\s*=?\s*([0-9.-]+[mV]?)',
+            'resistance': r'(?:R|resistance)\s*=?\s*([0-9.e+-]+[kmg]?)',
+            'capacitance': r'(?:C|capacitance)\s*=?\s*([0-9.e+-]+[unmpf]?[F]?)',
+            'inductance': r'(?:L|inductance)\s*=?\s*([0-9.e+-]+[unm]?[H]?)',
+            'frequency': r'(?:freq|frequency)\s*=?\s*([0-9.]+[GMK]?[Hh]z)',
+            'current': r'(?:I\w*|current|DC)\s*=?\s*([0-9.e+-]+[unm]?[A]?)',
+            'temperature': r'(?:temp|temperature)\s*=?\s*([0-9.-]+)',
+            'models': r'(?:\.model|model)\s+([A-Za-z0-9\s_]+)',
+            'subckt': r'(?:\.subckt)\s+([A-Za-z0-9\s_]+)'
         }
         
         # Extract parameters from generated code
@@ -101,11 +125,12 @@ class SilvacoMetrics:
             for match in matches:
                 extracted_params.append(f"{param_type}={match}")
         
-        # Also look for direct parameter matches
+        # Also look for direct SPICE parameter matches
         direct_patterns = [
-            r'([LW])\s*=\s*([0-9.]+[unm]?)',          # L=1u, W=10u
-            r'(VDD|VCC|Vdd)\s*=\s*([0-9.-]+[V]?)',    # VDD=3V
-            r'(\w+)\s*=\s*([0-9.e+-]+[unm]?[V]?)',    # Generic param=value
+            r'([LW])\s*=\s*([0-9.]+[unmpf]?)',        # L=1u, W=10u
+            r'(VDD|VCC|Vdd|DC)\s*=?\s*([0-9.-]+[mV]?)', # VDD=3V, DC 5V
+            r'([RC])\s*=?\s*([0-9.e+-]+[kmgpnuf]?)',  # R=1k, C=10p
+            r'(\w+)\s*=\s*([0-9.e+-]+[unmpf]?[VHA]?)', # Generic param=value
         ]
         
         for pattern in direct_patterns:
@@ -164,7 +189,7 @@ class SilvacoMetrics:
     def component_completeness_score(self, generated_code: str) -> Dict[str, any]:
         """
         Component Completeness Score (CCS)
-        Check presence of essential simulation components
+        Check presence of essential SPICE simulation components
         """
         code_lower = generated_code.lower()
         
@@ -176,8 +201,15 @@ class SilvacoMetrics:
             found_in_category = []
             
             for keyword in keywords:
-                if keyword in code_lower:
-                    found_in_category.append(keyword)
+                if category in ['devices', 'passive', 'sources']:
+                    # For components, check for patterns like M1, R1, etc.
+                    pattern = rf'\b{keyword}\d+'
+                    if re.search(pattern, code_lower):
+                        found_in_category.append(keyword)
+                else:
+                    # For directives and analysis, check direct keyword match
+                    if keyword in code_lower:
+                        found_in_category.append(keyword)
             
             # Score for this category (binary: at least one keyword found)
             category_scores[category] = 1.0 if found_in_category else 0.0
@@ -186,8 +218,8 @@ class SilvacoMetrics:
         # Overall CCS score (average of category scores)
         ccs_score = sum(category_scores.values()) / len(category_scores)
         
-        # Count essential components
-        essential_components = ['structure', 'electrodes', 'analysis']
+        # Count essential components for SPICE
+        essential_components = ['analysis', 'sources']  # Must have analysis and sources
         essential_score = sum(category_scores[comp] for comp in essential_components) / len(essential_components)
         
         return {
@@ -314,54 +346,47 @@ class SilvacoMetrics:
 
 def test_metrics():
     """Test the metrics with sample data"""
-    print("Testing Silvaco Evaluation Metrics")
+    print("Testing SPICE Evaluation Metrics")
     print("=" * 50)
     
-    metrics = SilvacoMetrics()
+    metrics = SPICEMetrics()
     
-    # Sample generated code
+    # Sample generated SPICE code
     sample_code = """
-go atlas
+* Simple NMOS Amplifier Circuit
+.subckt nmos_amp in out vdd gnd
+M1 out in gnd gnd nmos W=10u L=1u
+R1 vdd out 1k
+C1 in ac_in 1p
+.ends
 
-# Define mesh
-mesh space.mult=1.0
-x.mesh loc=0.0 spac=0.05
-y.mesh loc=0.0 spac=0.02
+* Main circuit
+VDD vdd 0 DC 5V
+Vin ac_in 0 DC 2.5V AC 1mV
+X1 ac_in output vdd 0 nmos_amp
+RL output 0 10k
 
-# Define regions
-region num=1 material=Silicon
+* Analysis
+.model nmos nmos level=1 vto=1 kp=50u
+.op
+.ac dec 10 1 100meg
+.tran 1n 100n
 
-# Define electrodes
-electrode name=source x.min=0.0 x.max=0.3
-electrode name=gate x.min=0.3 x.max=0.7
-
-# Doping
-doping uniform conc=1e16 p.type
-
-# Models
-models cvt srh
-
-# Solve
-solve init
-solve vgate=0.0 vstep=0.1 vfinal=3V
-
-quit
+.end
 """
     
-    # Expected parameters
-    expected_params = ["L=1u", "W=10u", "VDD=3V", "material=Silicon"]
+    # Expected parameters for SPICE
+    expected_params = ["W=10u", "L=1u", "DC=5V", "R=1k"]
     
     # Reference code for BLEU
     reference_code = """
-go atlas
-mesh 
-region material=Silicon
-electrode name=source
-electrode name=gate
-doping conc=1e16
-models srh
-solve vgate=3V
-quit
+* NMOS Circuit
+M1 out in gnd gnd nmos W=10u L=1u
+VDD vdd 0 DC 5V
+R1 vdd out 1k
+.model nmos nmos level=1
+.op
+.end
 """
     
     # Test all metrics

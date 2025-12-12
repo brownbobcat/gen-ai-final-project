@@ -16,15 +16,15 @@ except ImportError:
     pd = None
 
 # Import existing components
-from generate import SilvacoGenerator
-from prompt_engineering import get_technique_prompt
+from generate import SPICEModel
+from prompt_engineering import PromptEngineeringTechniques
 import sys
 import os
 
 # Add benchmark directory to path
 benchmark_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'benchmark')
 sys.path.append(benchmark_path)
-from metrics import SilvacoMetrics
+from metrics import SPICEMetrics
 
 
 class PromptExperimentFramework:
@@ -35,9 +35,11 @@ class PromptExperimentFramework:
         # Get correct adapter path relative to project root
         project_root = os.path.dirname(os.path.dirname(__file__))
         adapter_path = os.path.join(project_root, "model", "adapter_model")
+        base_model = "Qwen/Qwen2-0.5B"
         
-        self.generator = SilvacoGenerator(adapter_path=adapter_path)
-        self.metrics = SilvacoMetrics()
+        self.generator = SPICEModel(base_model, adapter_path)
+        self.metrics = SPICEMetrics()
+        self.prompt_techniques = PromptEngineeringTechniques()
         self.techniques = ['baseline', 'cot', 'few_shot', 'decomposition', 'format_control']
         
         # Select test cases for experiments (subset of benchmark)
@@ -45,6 +47,21 @@ class PromptExperimentFramework:
         
         # Results storage
         self.results = {technique: [] for technique in self.techniques}
+        
+    def _get_technique_prompt(self, technique: str, description: str) -> str:
+        """Get prompt for specific technique"""
+        if technique == 'baseline':
+            return self.prompt_techniques.baseline_prompt(description)
+        elif technique == 'cot':
+            return self.prompt_techniques.chain_of_thought_prompt(description)
+        elif technique == 'few_shot':
+            return self.prompt_techniques.few_shot_learning_prompt(description)
+        elif technique == 'decomposition':
+            return self.prompt_techniques.problem_decomposition_prompt(description)
+        elif technique == 'format_control':
+            return self.prompt_techniques.output_format_control_prompt(description)
+        else:
+            raise ValueError(f"Unknown technique: {technique}")
         
     def _select_test_cases(self) -> List[Dict]:
         """Select 8 representative test cases from benchmark for experiments"""
@@ -88,12 +105,12 @@ class PromptExperimentFramework:
         
         try:
             # Get technique-specific prompt
-            prompt = get_technique_prompt(technique, description)
+            prompt = self._get_technique_prompt(technique, description)
             
-            # Generate code using the model with custom prompt
-            generated_code = self.generator.generate_with_custom_prompt(
+            # Generate code using the model 
+            generated_code = self.generator.generate(
                 prompt,
-                max_length=2048,
+                max_new_tokens=600,
                 temperature=0.1
             )
             
@@ -248,8 +265,8 @@ class PromptExperimentFramework:
             print(f"Generating example for {technique}...")
             
             try:
-                prompt = get_technique_prompt(technique, example_case['description'])
-                generated_code = self.generator.generate_with_custom_prompt(prompt, temperature=0.1)
+                prompt = self._get_technique_prompt(technique, example_case['description'])
+                generated_code = self.generator.generate(prompt, max_new_tokens=600, temperature=0.1)
                 
                 examples[technique] = {
                     'prompt': prompt,

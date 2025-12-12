@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-prompt_engineering.py - Enhanced prompt engineering techniques for TCAD generation
+prompt_engineering.py - Enhanced prompt engineering techniques for SPICE generation
 Assignment 4: Implements 4 prompt engineering techniques
 """
 
@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 
 
 class PromptEngineeringTechniques:
-    """Implementation of 4 prompt engineering techniques for TCAD code generation"""
+    """Implementation of 4 prompt engineering techniques for SPICE code generation"""
     
     def __init__(self):
         """Initialize prompt engineering techniques"""
@@ -20,43 +20,42 @@ class PromptEngineeringTechniques:
     # =====================================
     def chain_of_thought_prompt(self, description: str, retrieved_examples: str = None) -> str:
         """
-        Chain-of-Thought: Break down device design into logical reasoning steps
+        Chain-of-Thought: Break down circuit design into logical reasoning steps
         """
-        prompt = f"""You are a Silvaco ATLAS expert. Think step by step to design the device simulation.
+        prompt = f"""You are a SPICE circuit expert. Think step by step to design the circuit simulation.
 
-Device Request: {description}
+Circuit Request: {description}
 
 Let me think through this step by step:
 
-Step 1: Device Analysis
-- What type of device is this? (MOSFET, diode, BJT, etc.)
-- What are the key physical parameters? (dimensions, doping, voltages)
-- What material system should I use? (Si, SiO2, etc.)
+Step 1: Circuit Analysis
+- What type of circuit is this? (amplifier, filter, oscillator, etc.)
+- What are the key circuit parameters? (voltages, resistances, capacitances)
+- What components are needed? (MOSFETs, resistors, capacitors, etc.)
 
-Step 2: Simulation Strategy
-- What mesh density is needed based on device dimensions?
-- Which regions need to be defined? (substrate, gate oxide, etc.)
-- Where should electrodes be placed for proper contact?
+Step 2: Netlist Strategy
+- What nodes need to be defined for proper connectivity?
+- How should components be connected? (series, parallel, feedback)
+- What is the circuit topology? (common source, differential, etc.)
 
-Step 3: Physics Selection
-- What physical models are needed? (SRH, Auger, quantum effects)
-- What doping profiles will achieve the specified characteristics?
-- What analysis type matches the request? (DC, AC, transient)
+Step 3: Component Selection
+- What device models are needed? (.MODEL statements)
+- What component values achieve the specified performance?
+- What analysis type matches the request? (.DC, .AC, .TRAN)
 
 Step 4: Code Generation
-Now I'll generate the complete Silvaco ATLAS code following this reasoning:
+Now I'll generate the complete SPICE netlist following this reasoning:
 
 Required Structure:
-1. go atlas (start simulation)
-2. Mesh definition (adaptive to device size)
-3. Material regions (match device structure)
-4. Electrode placement (proper contact geometry)
-5. Doping profiles (achieve target concentrations)
-6. Physical models (match device physics)
-7. Analysis commands (solve for requested characteristics)
-8. quit (end simulation)
+1. Component instances (M1, R1, C1, V1, etc.)
+2. Node connections (proper circuit topology)
+3. Model definitions (.MODEL statements)
+4. Parameter specifications (device dimensions, values)
+5. Analysis commands (.DC, .AC, .TRAN, .OP)
+6. Output directives (.PROBE, .PRINT)
+7. .END statement
 
-Based on my step-by-step analysis, here is the simulation code:
+Based on my step-by-step analysis, here is the SPICE netlist:
 
 """
         
@@ -72,104 +71,64 @@ Based on my step-by-step analysis, here is the simulation code:
         """
         Enhanced Few-Shot Learning: Strategic selection of examples with pattern explanation
         """
-        # Static high-quality examples covering different device types
+        # Static high-quality examples covering different circuit types
         static_examples = {
-            "nmos_basic": {
-                "description": "Create a basic NMOS with 1μm channel length and 10μm width",
-                "code": """go atlas
+            "nmos_amplifier": {
+                "description": "Create a basic NMOS amplifier with 1kΩ load resistor",
+                "code": """* Basic NMOS Common-Source Amplifier
+M1 vout vin vdd vdd nmos W=10u L=1u
+R1 vdd vout 1k
+VDD vdd 0 DC 5
+VIN vin 0 DC 2.5 AC 1m
+CIN vin input 1u
+RLOAD vout 0 10k
 
-# Mesh for 1μm device
-mesh space.mult=1.0
-x.mesh l=-0.5 spac=0.01
-x.mesh l=0.0 spac=0.002
-x.mesh l=1.0 spac=0.002
-x.mesh l=1.5 spac=0.01
-y.mesh l=0.0 spac=0.001
-y.mesh l=0.01 spac=0.002
-y.mesh l=0.5 spac=0.05
+.model nmos nmos level=1 vto=1 kp=50u
+.op
+.ac dec 10 1 100meg
+.probe ac vm(vout)
 
-# Silicon substrate and gate oxide
-region num=1 material=silicon x.min=-0.5 x.max=1.5 y.min=0.0 y.max=0.5
-region num=2 material=oxide x.min=0.0 x.max=1.0 y.min=0.0 y.max=0.01
-
-# Electrodes
-electrode num=1 name=source x.min=-0.5 x.max=0.0 y.min=0.0 y.max=0.0
-electrode num=2 name=drain x.min=1.0 x.max=1.5 y.min=0.0 y.max=0.0
-electrode num=3 name=gate x.min=0.0 x.max=1.0 y.min=0.01 y.max=0.01
-
-# Doping profiles
-doping uniform p.type conc=1e15 region=1
-doping gaussian n.type conc=1e17 char.length=0.05 x.min=-0.5 x.max=0.0
-doping gaussian n.type conc=1e17 char.length=0.05 x.min=1.0 x.max=1.5
-
-# Models and analysis
-models srh auger fermi
-solve initial
-solve vgate=3.0 vstep=0.1 name=gate
-save outfile=nmos_1u.str
-
-quit"""
+.end"""
             },
-            
-            "diode_basic": {
-                "description": "Design a p-n junction diode with 10μm junction depth",
-                "code": """go atlas
+            "rc_filter": {
+                "description": "Create an RC low-pass filter with 1kHz cutoff frequency",
+                "code": """* RC Low-Pass Filter
+VIN input 0 AC 1 0
+R1 input output 1.59k
+C1 output 0 100n
 
-# Mesh for diode structure
-mesh space.mult=1.0
-x.mesh l=0.0 spac=0.005
-x.mesh l=10.0 spac=0.01
-x.mesh l=20.0 spac=0.01
-y.mesh l=0.0 spac=0.002
-y.mesh l=0.5 spac=0.05
+.ac dec 10 1 10k
+.probe ac vm(output) vp(output)
 
-# Silicon region
-region num=1 material=silicon x.min=0.0 x.max=20.0 y.min=0.0 y.max=0.5
-
-# Electrodes
-electrode num=1 name=anode x.min=0.0 x.max=10.0 y.min=0.0 y.max=0.0
-electrode num=2 name=cathode x.min=10.0 x.max=20.0 y.min=0.0 y.max=0.0
-
-# P-N junction doping
-doping uniform n.type conc=1e15 region=1
-doping uniform p.type conc=1e16 x.min=0.0 x.max=10.0
-
-# Models and I-V analysis
-models srh auger
-solve initial
-solve vanode=1.0 vstep=0.1 name=anode
-save outfile=diode.str
-
-quit"""
+.end"""
             }
         }
         
-        prompt = f"""You are a Silvaco ATLAS expert. Learn from these high-quality examples and generate similar code.
+        prompt = f"""You are a SPICE circuit expert. Learn from these high-quality examples and generate similar code.
 
-EXAMPLE 1 - Basic NMOS Pattern:
-Input: {static_examples['nmos_basic']['description']}
+EXAMPLE 1 - NMOS Amplifier Pattern:
+Input: {static_examples['nmos_amplifier']['description']}
 Output:
-{static_examples['nmos_basic']['code']}
+{static_examples['nmos_amplifier']['code']}
 
-EXAMPLE 2 - Basic Diode Pattern:  
-Input: {static_examples['diode_basic']['description']}
+EXAMPLE 2 - RC Filter Pattern:  
+Input: {static_examples['rc_filter']['description']}
 Output:
-{static_examples['diode_basic']['code']}
+{static_examples['rc_filter']['code']}
 
 PATTERN ANALYSIS:
-- All simulations start with "go atlas" and end with "quit"
-- Mesh density adapts to device dimensions (finer for smaller features)
-- Material regions define device structure (silicon + oxides)
-- Electrodes match device type (3 for MOSFETs, 2 for diodes)
-- Doping creates the device physics (p/n junctions)
-- Models include SRH and Auger for realistic physics
-- Analysis commands match the device characterization needs
+- All netlists start with component instances and end with ".end"
+- Component naming follows SPICE conventions (M1, R1, C1, V1)
+- Node connections define circuit topology
+- .MODEL statements define device parameters
+- Analysis commands match circuit characterization needs (.ac, .dc, .tran)
+- .PROBE statements specify output measurements
 
-Now generate code for this new device following the same patterns:
+Now generate SPICE code for this new circuit following the same patterns:
 
-Device Request: {description}
+Circuit Request: {description}
 
-Generated Silvaco Code:
+Generated SPICE Code:
 """
         
         if retrieved_examples:

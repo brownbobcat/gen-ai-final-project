@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-eval.py - Full evaluation pipeline for Silvaco code generation
+eval.py - Full evaluation pipeline for SPICE circuit code generation
 Runs all test cases, generates code, computes metrics, saves results
 """
 
@@ -18,36 +18,35 @@ import pandas as pd
 import sys
 sys.path.append('src')
 
-from generate import SilvacoGenerator
-from metrics import SilvacoMetrics
+from generate import SPICEModel
+from metrics import SPICEMetrics
 
 
-class SilvacoEvaluator:
-    """Complete evaluation pipeline for Silvaco code generation"""
+class SPICEEvaluator:
+    """Complete evaluation pipeline for SPICE code generation"""
     
     def __init__(self, use_rag: bool = True, use_fine_tuned: bool = True):
         """Initialize evaluator"""
         self.use_rag = use_rag
         self.use_fine_tuned = use_fine_tuned
         
-        print("Initializing Silvaco Evaluation Pipeline")
+        print("Initializing SPICE Evaluation Pipeline")
         print("=" * 50)
         
         # Initialize generator
-        print("Loading generator...")
-        self.generator = SilvacoGenerator()
+        print("Loading SPICE model...")
+        base_model = "Qwen/Qwen2-0.5B"
+        adapter_path = "model/adapter_model"
+        self.generator = SPICEModel(base_model, adapter_path)
         
-        # Load RAG if requested
+        # Note: RAG functionality would need to be integrated separately
+        # For now, we'll use the model without RAG enhancement
         if use_rag:
-            try:
-                self.generator.load_rag_index()
-                print("✓ RAG system loaded")
-            except Exception as e:
-                print(f"⚠️  RAG system failed to load: {e}")
-                self.use_rag = False
+            print("⚠️  RAG not integrated with SPICEModel yet - using model only")
+            self.use_rag = False
         
         # Initialize metrics
-        self.metrics = SilvacoMetrics()
+        self.metrics = SPICEMetrics()
         print("✓ Metrics system loaded")
         
         # Results storage
@@ -89,16 +88,13 @@ class SilvacoEvaluator:
             # Generate code
             start_time = time.time()
             
-            generation_result = self.generator.generate(
+            generated_code = self.generator.generate(
                 description=description,
-                use_rag=self.use_rag,
-                num_examples=3,
-                max_length=1024,  # Reduced for faster generation
+                max_new_tokens=600,
                 temperature=0.7
             )
             
             generation_time = time.time() - start_time
-            generated_code = generation_result['generated_code']
             
             result.update({
                 'generation_time': generation_time,
@@ -300,7 +296,7 @@ class SilvacoEvaluator:
 
 def main():
     """Main evaluation function"""
-    parser = argparse.ArgumentParser(description="Evaluate Silvaco code generation")
+    parser = argparse.ArgumentParser(description="Evaluate SPICE code generation")
     parser.add_argument(
         "--test-cases",
         default="benchmark/test_cases.json", 
@@ -325,7 +321,7 @@ def main():
     args = parser.parse_args()
     
     # Initialize evaluator
-    evaluator = SilvacoEvaluator(use_rag=not args.no_rag)
+    evaluator = SPICEEvaluator(use_rag=not args.no_rag)
     
     # Run evaluation
     results_file = evaluator.run_full_evaluation(

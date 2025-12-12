@@ -1,0 +1,8 @@
+VIN vin 0 DC 3.3
+R1 vin vn1 2.0k
+L1 vn1 vout 1u
+C1 vout 0 4.7nf
+
+.AC DEC 10 1K 10G
+.PROBE DC V(vout) I(VIN)
+.END
